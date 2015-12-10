@@ -1,0 +1,52 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='Jan;Fev;Mar;Abr;Mai;Jun;Jul;Ago;Set;Out;Nov;Dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+Let myDate =  Now(); //Today();
+Let dtIni = '20150101';
+Let dtFim = Date(Today()-1,'YYYYMMDD');
+Let diretorio =  'Bi-79 Verbas Comerciais';
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=BI_FINANCEIRO;Initial Catalog=DW;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (Password is '1234');
+
+VERBAS:
+SELECT 
+		COD_LOJA
+		,LEFT(MES_ANO,2)*1 AS MES
+		,RIGHT(MES_ANO,4) AS ANO
+		,COD_FORNECEDOR
+		,ISNULL(VLR_PED_BONIFICADO,0) AS VLR_PED_BONIFICADO
+		,ISNULL(VLR_ENTR_BONIFICADO,0) AS VLR_ENTR_BONIFICADO
+		,ISNULL(VLR_PGTO_DESCONTO,0) AS VLR_PGTO_DESCONTO
+		,ISNULL(VLR_OUTROS_RECEBIMENTOS,0) AS VLR_OUTROS_RECEBIMENTOS
+FROM VERBAS_COMERCIAIS;
+
+CAD_LOJA:
+SELECT 
+		[COD_LOJA]
+		,CASE COD_LOJA 	WHEN 4 THEN 'Cotoxo' WHEN 10 THEN 'SCS' WHEN 19 THEN 'Sumare' WHEN 28 THEN 'Orbis' WHEN 15 THEN 'Ominus' WHEN 32 THEN 'Alpha II' ELSE [NO_LOJA] END AS NO_LOJA
+		,NO_REGIONAL
+		,CASE WHEN [COD_LOJA] = 29 THEN 'EATALY' ELSE [CLUSTER]	END AS [CLUSTER]
+		,ISNULL(CASE WHEN [COD_LOJA] IN (4,10,19) THEN 1 ELSE FLG_LOJA END,0) AS FLG_LOJA
+FROM [BI].[DBO].[BI_CAD_LOJA2];
+
+CAD_FORNECEDOR:
+
+SELECT [COD_FORNECEDOR]
+      ,[DESCRICAO] AS DES_FORNECEDOR
+      ,[ABC_FORN]
+      ,F.[COD_USUARIO]
+	  ,C.NO_COMPRADOR
+	  ,F.CGCCPF AS CNPJ
+  FROM [BI].[dbo].[BI_CAD_FORNECEDOR] as F
+        left join
+        BI.dbo.COMPRAS_CAD_COMPRADOR as C
+        on c.COD_USUARIO = f.COD_USUARIO;

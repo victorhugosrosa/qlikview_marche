@@ -1,0 +1,127 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+//--------------------------------------------------------------------
+// Setando variáveis
+
+Let diretorio =  'Cargas\' ;
+Let agora = Now();
+
+//------------------------------------------------------------------------
+// MOVIMENTAÇÃO DE PRODUTOS
+for each file in FileList('Cargas\dados Bi-05\DA_PARA_DIAS_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as DTA_MOVIMENTO,
+		@2 as COD_LOJA,
+		@3 as COD_PRODUTO,
+		@4 as QTD_ESTOQUE,
+		@5 as AVG_QTD_VENDA,
+		@6 as AVG_VLR_VENDA,
+		@7 as AVG_VLR_CUSTO,
+		@8 as VAL_VENDA,
+		@9 as VAL_VENDA_PD,
+		@10 as VAL_CUSTO_TABELA,
+		@11 as FORA_LINHA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+
+CAD_PRODUTO:
+SELECT
+	CP.COD_PRODUTO
+	,CP.DESCRICAO AS NO_PRODUTO
+	,CP.COD_DEPARTAMENTO
+	,CP.COD_SECAO
+	,CP.COD_GRUPO
+	,CP.NO_DEPARTAMENTO
+	,CP.NO_SECAO
+	,CP.NO_GRUPO
+	,CP.COD_FORNECEDOR
+	,CF.DESCRICAO AS DES_FANTASIA
+	,CP.PNP
+	,CP.CLASSIF_PRODUTO as CLASSIF_PRODUTO_LOJA
+	,C.NO_COMPRADOR
+FROM
+	[BI].[dbo].[BI_CAD_PRODUTO] as CP
+	LEFT JOIN [BI].[dbo].[BI_CAD_FORNECEDOR] AS CF
+		ON CP.COD_FORNECEDOR = CF.COD_FORNECEDOR
+	LEFT JOIN [BI].[dbo].[COMPRAS_CAD_COMPRADOR] AS C
+		ON CP.COD_USUARIO = C.COD_USUARIO
+		AND C.FLG_EXIBE_BI = 1
+	WHERE 1=1
+;
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,[DTA_ABERTURA]
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where flg_loja = 1 OR COD_LOJA = 28
+;
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;
+
+/*
+PROD_PRECO:
+SELECT
+	COD_PRODUTO
+	,VLR_OFERTA
+	,VLR_VCMARCHE
+FROM BI_LINHA_PRODUTOS;
+*/
+
+/*
+GRUPO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+;
+
+
+PROD_COMPRADOR:
+SELECT
+	P.[COD_PRODUTO]
+	,P.[COD_USUARIO]     
+	,P.[COD_FORNECEDOR]
+	,F.DES_FANTASIA
+	,P.PNP
+	,P.DESCRICAO AS NO_PRODUTO
+	,P.COD_SECAO
+	,P.COD_GRUPO
+	,P.CLASSIF_PRODUTO
+FROM
+	[BI].[dbo].[BI_CAD_PRODUTO] as CP INNER JOIN BI_CAD_FORNECEDOR AS F ON (P.COD_FORNECEDOR = F.COD_FORNECEDOR)
+	[BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+;
+
+DEPARTAMENTOS:
+SELECT DISTINCT
+	P.COD_DEPARTAMENTO
+	,P.COD_SECAO
+	,P.COD_GRUPO
+	,P.NO_DEPARTAMENTO
+	,P.NO_SECAO
+	,P.NO_GRUPO
+FROM
+	BI.DBO.BI_CAD_PRODUTO AS P;
+
+*/

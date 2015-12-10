@@ -1,0 +1,42 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+GRUPO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+  WHERE FLG_EXIBE_BI = 1;
+
+DEPARTAMENTOS:
+SELECT
+	P.NO_DEPARTAMENTO
+	,P.NO_SECAO
+	,P.NO_GRUPO
+	,COD_PRODUTO
+	,P.DESCRICAO AS NO_PRODUTO
+	,P.COD_USUARIO
+	,P.[COD_FORNECEDOR]
+	,F.DES_FANTASIA AS NO_FORNECEDOR
+	,P.PNP
+	,P.FORA_LINHA
+	,P.CLASSIF_PRODUTO
+	,P.COD_PRODUTO_SIMILAR
+FROM
+	BI.DBO.BI_CAD_PRODUTO AS P LEFT JOIN BI_CAD_FORNECEDOR AS F ON (P.COD_FORNECEDOR = F.COD_FORNECEDOR);
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;
+
+PRECOS_SITE:
+SQL EXEC BI.DBO.QW_21_PESQUISA_SITE_PA_DIARIA;

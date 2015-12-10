@@ -1,0 +1,9 @@
+Sub PartialReload
+	ActiveDocument.PartialReload
+	'ActiveDocument.Save
+End Sub
+
+Sub Reload
+	ActiveDocument.Reload
+	'ActiveDocument.Save
+End Sub

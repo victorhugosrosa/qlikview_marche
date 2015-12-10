@@ -1,0 +1,4 @@
+Sub Reload
+	ActiveDocument.Reload
+	'ActiveDocument.Save
+End Sub

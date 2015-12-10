@@ -1,0 +1,219 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+//--------------------------------------------------------------------
+
+Let diretorio =  'Cargas\' ;
+Let agora = Now();
+
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-03\VENDA_MP_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as QTD_VENDA,
+		@6 as VLR_VENDA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-03\CMV_MP_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as MARGEM_REF,
+		@6 as VLR_IMPOSTOS,
+		@7 as CMV
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-03\QUEBRA_MP_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as NO_AJUSTE,
+		@6 as QTD_QUEBRA,
+		@7 as VLR_QUEBRA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//--------------------------------------------------------------------
+//Nome dos Meses
+LOAD * INLINE [
+    MES, NO_MES
+	 1,"Jan"
+	 2,"Fev"
+	 3,"Mar"
+	 4,"Abr"
+	 5,"Mai"
+	 6,"Jun"
+	 7,"Jul"
+	 8,"Ago"
+	 9,"Set"
+	10,"Out"
+	11,"Nov"
+	12,"Dez"
+];
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,DTA_ABERTURA
+      ,CLUSTER
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where 1=1
+  and flg_loja = 1 --or cod_loja in (5,26)
+  ;
+
+GRUPO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+  WHERE FLG_EXIBE_BI = 1;
+
+DEPARTAMENTOS:
+SELECT
+	P.NO_DEPARTAMENTO
+	,P.COD_DEPARTAMENTO
+	,P.NO_SECAO
+	,P.COD_SECAO
+	,P.NO_GRUPO
+	,P.COD_GRUPO
+	,COD_PRODUTO
+	,P.DESCRICAO AS NO_PRODUTO
+	,P.COD_USUARIO
+	,P.[COD_FORNECEDOR]
+	,F.DES_FANTASIA AS NO_FORNECEDOR
+	,P.CLASSIF_PRODUTO
+FROM
+	BI.DBO.BI_CAD_PRODUTO AS P LEFT JOIN BI_CAD_FORNECEDOR AS F ON (P.COD_FORNECEDOR = F.COD_FORNECEDOR)
+WHERE 1=1
+	AND COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 1 AND TPM.COD_METADADO = 1)
+;
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;
+
+/*
+MARGEM_ATUAL:
+SELECT
+	[COD_LOJA]
+	,[COD_PRODUTO]
+	,[ALIQUOTA_PDV]
+	,[VLR_CUSTO_ENTRADA] AS VLR_CUSTO_MEDIO_ATUAL
+	,[ICMS_ALIQUOTA_AX] AS ICMS_ALIQUOTA_ATUAL
+	,[ICMS_REDUCAO_AX] AS ICMS_REDUCAO_ATUAL
+	,[Cofins_Aliquota_AX] AS ASCOFINS_ALIQUOTA_ATUAL
+	,[Pis_Aliquota_AX] AS ASPIS_ALIQUOTA_ATUAL
+FROM [BI].[dbo].[BI_CMV_ATUAL]
+WHERE 1=1
+	AND COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 1 AND TPM.COD_METADADO = 1)
+;
+*/
+
+PRECO_ATUAL:
+SELECT
+	COD_LOJA
+	,COD_PRODUTO
+	,VLR_VENDA AS VLR_VENDA_ATUAL
+	,VLR_OFERTA AS VLR_PROMO_ATUAL
+	,VLR_VCMARCHE AS VOCE_MARCHE_ATUAL
+FROM
+	BI.DBO.BI_LINHA_PRODUTOS
+WHERE 1=1
+	AND COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 1 AND TPM.COD_METADADO = 1)
+;
+
+/*
+ULT_CALC:
+SELECT MAX(DTA_CALCULO) AS ULT_CALC FROM DW.[dbo].[CMV];
+*/
+/*
+CMV:
+SELECT 
+	CMV.COD_LOJA
+	,YEAR(CMV.DTA_CALCULO) AS ANO
+	,MONTH(CMV.DTA_CALCULO) AS MES
+	,CMV.COD_PRODUTO		
+	,CMV.MARGEM_REF	
+	--,SUM(CMV.Total_Qtde) as QTD_VENDA
+	--,SUM(CMV.Total_Venda) as VLR_VENDA
+	,SUM(CMV.Total_Impostos) as VLR_IMPOSTOS
+	,SUM(CMV.VLR_CUSTO_MEDIO*CMV.Total_Qtde) AS CMV		
+FROM
+	DW.[dbo].[CMV] as CMV
+	INNER JOIN BI.DBO.BI_CAD_PRODUTO AS CP
+		ON CMV.COD_PRODUTO = CP.COD_PRODUTO
+WHERE 1=1
+	AND CONVERT(DATE,CMV.DTA_CALCULO) BETWEEN CONVERT(DATE,'20150101') AND CONVERT(DATE,GETDATE()-1)
+	AND CMV.COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 1 AND TPM.COD_METADADO = 1)
+GROUP BY 	
+	CMV.COD_LOJA
+	,YEAR(CMV.DTA_CALCULO)
+	,MONTH(CMV.DTA_CALCULO)
+	,CMV.COD_PRODUTO		
+	,CMV.MARGEM_REF;
+*/
+/*
+QUEBRAS:
+SELECT
+	QP.COD_LOJA
+	,YEAR(QP.DATA) AS ANO
+	,MONTH(QP.DATA) AS MES
+	,QP.COD_PRODUTO
+	,TQ.NO_AJUSTE
+	,SUM(QP.QTD_QUEBRA) AS QTD_QUEBRA
+	,SUM(QP.VLR_QUEBRA) AS VLR_QUEBRA
+FROM
+	BI.DBO.BI_QUEBRA_PRODUTO AS QP
+	INNER JOIN BI.dbo.BI_CAD_TIPO_QUEBRA AS TQ
+		ON QP.COD_AJUSTE = TQ.COD_AJUSTE
+	LEFT JOIN BI.dbo.BI_CAD_SEMANA AS S
+		ON QP.DATA = S.DATA
+WHERE 1=1
+	AND CONVERT(DATE,QP.DATA) BETWEEN CONVERT(DATE,'20150101') AND CONVERT(DATE,GETDATE()-1)
+	AND QP.COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 1 AND TPM.COD_METADADO = 1)
+GROUP BY
+	QP.COD_LOJA
+	,YEAR(QP.DATA)
+	,MONTH(QP.DATA)
+	,QP.COD_PRODUTO
+	,TQ.NO_AJUSTE
+;
+*/

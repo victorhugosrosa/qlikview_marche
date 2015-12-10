@@ -1,0 +1,101 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+//--------------------------------------------------------------------
+
+Let diretorio =  'Cargas\' ;
+Let agora = Now();
+/*
+//--------------------------------------------------------------------
+//Nome dos Meses
+LOAD * INLINE [
+    MES, NO_MES
+	 1,"Jan"
+	 2,"Fev"
+	 3,"Mar"
+	 4,"Abr"
+	 5,"Mai"
+	 6,"Jun"
+	 7,"Jul"
+	 8,"Ago"
+	 9,"Set"
+	10,"Out"
+	11,"Nov"
+	12,"Dez"
+];
+*/
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,DTA_ABERTURA
+      ,CLUSTER
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where 1=1
+  and flg_loja = 1 or cod_loja in (5,26)
+  ;
+  
+ WMS_Trace_Pedido:
+ select                                  
+	Calculadora_COD_LOJA AS COD_LOJA
+	--,Calculadora_DataAreaid
+	,Calculadora_Num_pedido AS NUM_PEDIDO                       
+	,case when Calculadora_DataAreaid  = 'ORB' then 'Somente Entrada'
+		   else 'Necessita Faturamento'
+	end TIPO
+	,Calculadora_Data
+	,datepart(HH,Calculadora_Data) AS HORA
+	,OC_Data
+	,OV_Data
+	,isnull(datediff(mi , Calculadora_Data , OV_Data),0) as TempoPed	 
+	,WMS_ENVIO_Data
+	,WMS_RECEB_Data
+	,isnull(datediff(hh , OV_Data , WMS_RECEB_Data),0) as TempoWMS 	 
+	,LIBFAT_Data
+	,AX_FAT_Data
+	,NORTIA_Data
+	,isnull(datediff(mi , LIBFAT_Data , NORTIA_Data),0) as TempoFat
+	,CONVERT(DATE,LIBFAT_Data) AS DATA_LIMPA
+	,isnull(datediff(hh , Calculadora_Data , NORTIA_Data),0) as TempoTotal
+from
+	[MarcheCorp].dbo.[WMS_PROCESSO_CD_Trace_pedido]
+where Calculadora_DataAreaid  <> 'ORB';
+	
+WMS_Processo_CD:
+select
+	COD_LOJA
+	,CONVERT(DATE,DTA_GRAVACAO) as DATA_LIMPA
+	,Registro
+	,Tipo AS NO_INDICADOR
+	,MENSAGEM as MSG
+	,NUM_PEDIDO , RESPONSAVEL
+from
+	MarcheCorp.dbo.WMS_PROCESSO_CD with (NOLOCK)
+where 1 = 1
+	and CAST(DTA_GRAVACAO as date) >='20150901'
+	and Registro = 'Indicador';
+	
+WMS_Erro:
+select
+	COD_LOJA
+	,CONVERT(DATE,DTA_GRAVACAO) as DATA_LIMPA_ERRO
+	,Registro
+	,Tipo AS NO_INDICADOR_ERRO
+	,MENSAGEM as MSGERRO
+	,NUM_PEDIDO , RESPONSAVEL
+from
+	MarcheCorp.dbo.WMS_PROCESSO_CD_HST with (NOLOCK)
+where 1 = 1
+	and CAST(DTA_GRAVACAO as date) >='20150901'
+	and Registro = 'Erro';

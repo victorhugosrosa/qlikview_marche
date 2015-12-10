@@ -1,0 +1,294 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+Let myDate = Today();
+Let myDateM1 = AddMonths(Today(),-3);
+
+Let quebraDate01 = Date(AddMonths(Today()-1,-3),'YYYYMMDD');
+Let quebraDate02 = Date(Today()-1,'YYYYMMDD');
+
+Let diretorio =  'Cargas\' ;
+
+/*
+Directory;
+LOAD COD_DEPARTAMENTO, 
+     COD_SECAO, 
+     NO_DEPARTAMENTO, 
+     NO_SECAO
+FROM
+[$(diretorio)dados Bi-14\06-Departamentos.txt]
+(txt, utf8, embedded labels, delimiter is '\t', msq);
+*/
+/*
+Directory;
+LOAD COD_DEPARTAMENTO, 
+     PNP
+FROM
+[$(diretorio)dados Bi-14\04-PNP.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+*/
+
+Directory;
+LOAD COD_PRODUTO, 
+     MP_NIVEL
+FROM
+[Cargas\dados Bi-14\08-MP.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=Zeus_Rtg;Data Source=192.168.0.6;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+
+
+
+/*
+QUEBRAS:
+SELECT [COD_LOJA]
+	  --,[COD_AJUSTE_ESTOQUE] as ID
+	  --,[COD_AJUSTE] AS COD_TIPO_TRANSF
+	  --,CONVERT(CHAR(10),[DTA_AJUSTE],103) AS DATA
+	  ,[COD_PRODUTO]
+	  ,SUM(-1*[QTD_AJUSTE]*[VAL_CUSTO_REP]) AS VLR_QUEBRA_3M
+      
+FROM [Zeus_Rtg].[dbo].[TAB_AJUSTE_ESTOQUE]
+WHERE 1=1
+AND CONVERT(CHAR,[DTA_AJUSTE],112) BETWEEN '$(quebraDate01)' and '$(quebraDate02)'
+AND COD_AJUSTE IN (51,120,121,122,123)
+GROUP BY [COD_LOJA] 
+		,[COD_PRODUTO]
+;
+*/
+
+/*
+//IMPOSTOS
+SELECT COD_PRODUTO
+      ,SUM([VAL_TABELA_LIQ]*i.ICMS_ALIQ)/SUM(CASE WHEN [VAL_TABELA_LIQ] = 0 THEN 1 ELSE [VAL_TABELA_LIQ] END ) AS ICMS_ALIQ_ENTRADA
+      
+  FROM [Zeus_Rtg].[dbo].[vw_MARCHE_ENTRADAS_GERAIS] AS nf
+  		INNER JOIN 
+		[192.168.0.13].[BI].[dbo].[ICMS_ALIQ] AS i
+		ON nf.[COD_TRIBUTACAO] = i.ICMS_COD
+
+  where 1=1
+  and ano = 2012
+  AND BONIFICACAO = 'N'
+  
+  GROUP BY  COD_PRODUTO
+;
+
+
+SELECT [COD_PRODUTO]
+	  ,max(ICMS_ALIQ) as ICMS_ALIQ
+      ,max([PIS_COFINS]) as [PIS_COFINS]
+  FROM [Zeus_Rtg].[dbo].[AX_TABELA_IMPOSTOS] as p
+		LEFT JOIN 
+		[192.168.0.13].[BI].[dbo].[ICMS_ALIQ] AS i
+		ON P.[COD_TRIBUTACAO] = i.ICMS_COD
+		
+group by [COD_PRODUTO]
+;
+*/
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;
+
+SUPERBASE:
+SQL
+SELECT
+	LINHA.[COD_LOJA]
+	,LINHA.[COD_PRODUTO]*1 as [COD_PRODUTO]
+	,LINHA.[CLASSIF_PRODUTO_LOJA]
+	,LINHA.[QTDE_PRODUTO_1ANO]
+	,LINHA.[VLR_TOTAL_1ANO] AS VALOR_TOTAL_1ANO
+	,MOV.[QTD_ESTOQUE]
+	,[FORA_LINHA]
+FROM
+	[BI].[dbo].[BI_LINHA_PRODUTOS] AS LINHA
+	LEFT JOIN
+	[BI].[dbo].[BI_ESTOQUE_PRODUTO] AS MOV
+	ON (
+		LINHA.COD_PRODUTO = MOV.COD_PRODUTO
+		AND LINHA.COD_LOJA = MOV.COD_LOJA
+		)
+WHERE 1 = 1
+and LINHA.COD_LOJA IN (1,2,3,6,7,9,12,13,17,18,20,30,21,22,23,24,25,27,26,29,31)
+and COD_DEPARTAMENTO NOT IN (20,7)
+;
+
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where 1 = 1
+  AND COD_LOJA  IN (1,2,3,6,7,9,12,13,17,18,20,30,21,22,23,24,25,27,26,29,31)
+;
+
+
+CAD_PRODUTO:
+SELECT [COD_PRODUTO]
+		,COD_DEPARTAMENTO
+      ,[COD_SECAO]
+      
+      ,[COD_GRUPO]
+      ,[COD_SUB_GRUPO]
+      ,NO_DEPARTAMENTO
+      ,[NO_SECAO]
+      ,[NO_GRUPO]
+      ,[DESCRICAO] AS NO_PRODUTO
+      ,[PESADO]
+      ,[FLG_MARCA_PROPRIA]
+      ,[CLASSIF_PRODUTO]
+	,COD_USUARIO
+	,COD_FORNECEDOR * 1 AS COD_FORNECEDOR
+	,PNP
+  FROM [BI].[dbo].[BI_CAD_PRODUTO]
+  WHERE 1=1
+;
+
+FORNECEDORES:
+SELECT [COD_FORNECEDOR] * 1 AS COD_FORNECEDOR
+      ,[DESCRICAO] AS NO_FORNECEDOR
+  FROM [BI].[dbo].[BI_CAD_FORNECEDOR]
+;
+
+SECAO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+;
+//--------------------------------------------------------------------------
+/*
+FORN_PRODUTO:
+  SELECT  [COD_FORNECEDOR]
+		  ,[COD_PRODUTO]*1 as [COD_PRODUTO]
+		  --,[COD_LOJA]
+		  ,[QTD_EMBALAGEM_COMPRA]
+		  ,[VAL_CUSTO_EMBALAGEM]
+		  ,[VAL_DESCONTO_PER_1]
+		  --,[QTD_EST_ATUAL]
+		  ,[ipv]
+		  ,[val_venda]
+  FROM [BI].[dbo].[PRODUTO_FORNECEDOR_LINHA]
+  WHERE 1=1
+  AND COD_LOJA  IN (1,2,3,6,7,9,12,13,17,18,20,10,4,19,30,21)
+  AND COD_FORNECEDOR NOT IN (14322,14357,14775,16386,14721,2355,14321)
+;
+*/
+
+
+
+/*
+PRECOS_VENDA_ATIVOS:
+SELECT
+	[COD_LOJA]
+	,[COD_PRODUTO]
+	,[VLR_VENDA]
+FROM [BI].[DBO].[VW_PRECOS_VENDA_ATIVOS]
+WHERE 1 = 1 
+--and COD_LOJA IN (1,2,3,4,6,7,9,10,12,13,17,18,19,20);
+
+*/
+
+
+
+SELECT [COD_PRODUTO]
+      ,[COD_METADADO]
+      --,[DTA_GRAVACAO]
+      ,[VLR_METADADO]
+  FROM [BI].[dbo].[CADASTRO_CAD_PRODUTO_METADADOS]
+;
+
+SELECT [COD_METADADO]
+      ,[NO_METADADO]
+      --,[OBS]
+  FROM [BI].[dbo].[CADASTRO_CAD_METADADOS]
+;
+
+
+/*
+SELECT [COD_LOJA]
+      ,v.[COD_PRODUTO] as COD_PRODUTO
+	  ,sum([QTDE_DEMANDA]) as QTD_DEMANDA_1ANO
+      ,DATEDIFF(MM,min([DATA]),getDATE()) as QTD_MESES_EM_LINHA
+      
+  FROM [BI].[dbo].[BI_VENDA_PRODUTO] as v inner join
+	   [BI].[dbo].[BI_cad_produto] as p 
+	   on v.COD_PRODUTO = p.cod_produto
+  where 1=1
+  and DATA > DATEADD (mm , -12 , getDATE() )
+  and COD_SECAO not in (6)
+  and TIPO_VENDA = 1
+  group by [COD_LOJA], v.[COD_PRODUTO], [DTA_CADASTRO]
+;
+*/
+
+
+SELECT
+	COD_LOJA
+	,COD_PRODUTO
+	,VLR_VENDA
+FROM
+	BI.DBO.VW_PRECOS_VENDA_ATIVOS
+WHERE 1=1
+AND COD_LOJA IN (1,2,3,6,7,9,12,13,17,18,20,30,21,22,23,24,25,27,26,29,31)	
+;
+
+
+FLG_METADADOS:
+SELECT
+	CP.COD_PRODUTO
+	,isnull((SELECT VLR_METADADO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.COD_PRODUTO = CP.COD_PRODUTO AND TPM.COD_METADADO = 1),0) AS FLG_MP
+	,isnull((SELECT VLR_METADADO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.COD_PRODUTO = CP.COD_PRODUTO AND TPM.COD_METADADO = 4),0) AS FLG_IP
+FROM
+	BI_CAD_PRODUTO AS CP
+WHERE 1=1
+;
+///$tab SB
+/*
+
+SELECT TOP 1000 [COD_FORNECEDOR]
+		,[MICRO_EMPRESA]
+  FROM [Zeus_Rtg].[dbo].[TAB_FORNECEDOR]
+  where 1=1
+  and [MICRO_EMPRESA] = 'S'
+  
+*/
+
+/*
+
+//SELECT DAS DIMENSOES NOVAS DO GCAT
+
+SELECT [plu] AS COD_PRODUTO
+      --,[ITEMNAME]
+      ,[EMBALAGEM_VENDA] AS DIM_EMB_VENDA
+      ,[MARCA]	AS DIM_MARCA_TERCEIRO
+      ,[MARCA_PROPRIA] AS DIM_MARCA_PROPRIA
+      ,[IMPORTACAO_PROPRIA] AS DIM_IMP_PROPRIA
+      ,[LIGHT] AS DIM_LIGHT
+      ,[DIET] AS DIM_DIET
+      ,[SL] AS DIM_SEM_LACTOSE
+      ,[SG] AS DIM_SEM_GLUTEM
+      ,[ORG] AS DIM_ORG
+      ,[KOSHER] AS DIM_KOSHER
+      ,[IMPORTADO] AS DIM_IMPORTADO
+  FROM [192.168.0.13].AX2009_INTEGRACAO.DBO.ERPSP_AX_PRODUTOS AS DIM
+	   INNER JOIN BI.DBO.BI_CAD_PRODUTO AS P
+	   ON P.COD_PRODUTO = DIM.PLU
+	   WHERE 1=1
+	   AND COD_SECAO NOT IN (6)
+	   
+
+*/

@@ -1,0 +1,238 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+Let myDate =  Now(); //Today();
+
+Let dtIni = '20150101';
+Let dtFim = Date(Today()-1,'YYYYMMDD');
+Let diretorio =  'Bi-75 Quebra Mes\' ;
+
+
+	
+	
+	DIRECTORY;
+LOAD @1 AS CONTA_N1, 
+     @2 AS CONTA_N2,
+     @3 AS CONTA_N3,
+     @4 AS CONTA_N4,
+     @5 AS CONTA,
+     @6 AS DES_N1,
+     @7 AS DES_N2,
+     @8 AS DES_N3,
+     @9 AS DES_N4
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\niveis.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+		
+	DIRECTORY;
+LOAD @1 AS CLASS_LOJA, 
+     @2 AS COD_LOJA,
+     @3 AS NO_LOJA,
+     @4 AS GRUPO_LOJA
+        
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\loja.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+	
+	
+		
+	DIRECTORY;
+LOAD @1 AS COD_GRUPO_CONTA, 
+     @2 AS GRUPO_CONTA
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\grupo_contas.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+	
+	DIRECTORY;
+LOAD @1 AS CLASS_LOJA, 
+     @2 AS COD_LOJA,
+     @3 AS NO_LOJA,
+     @4 AS MARCA_LOJA
+  
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\marca.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+
+	DIRECTORY;
+LOAD @1 AS NO_LOJA, 
+     @2 AS MES,
+     @3 AS DF_BP,
+     @4 AS VALOR_BP
+  
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\bp2015.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+	
+	DIRECTORY;
+LOAD @1 AS CONTA, 
+     @2 AS DESCRICAO_PLANO,
+     @3 AS TIPO,
+     @4 AS BALANCE_SHEET,
+     @5 AS DF,
+     @6 AS GRUPO_CONTA
+     
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\plano_contas.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+
+	DIRECTORY;
+LOAD @1  AS LOJA, 
+     @2  AS DATA,
+     @3  AS HISTORICO,
+     @4  AS Débito,
+     @5  AS Crédito,
+     @6  AS Valor,
+     @7  AS Responsável,
+     @8  AS NO_LOJA,
+     @9  AS MES,
+     @10 AS TRIMESTRE,
+     @11 AS ANO, 
+     @12 AS CONTA,
+     @13 AS Valor_calc,
+     @14 AS Valor_calc_CR_Hist,
+     @15 AS NUM_LCTO
+     
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\iniciais.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+
+	DIRECTORY;
+LOAD @1  AS LOJA, 
+     @2  AS DATA,
+     @3  AS HISTORICO,
+     @4  AS Débito,
+     @5  AS Crédito,
+     @6  AS Valor,
+     @7  AS Responsável,
+     @8  AS NO_LOJA,
+     @9  AS MES,
+     @10 AS TRIMESTRE,
+     @11 AS ANO, 
+     @12 AS CONTA,
+     @13 AS Valor_calc,
+     @14 AS Valor_calc_CR_Hist
+     
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\originalago.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+
+
+	DIRECTORY;
+LOAD @1  AS LOJA, 
+     @2  AS DATA,
+     @3  AS HISTORICO,
+     @4  AS Débito,
+     @5  AS Crédito,
+     @6  AS Valor,
+     @7  AS Responsável,
+     @8  AS NO_LOJA,
+     @9  AS MES,
+     @10 AS TRIMESTRE,
+     @11 AS ANO, 
+     @12 AS CONTA,
+     @13 AS Valor_calc,
+     @14 AS Valor_calc_CR_Hist
+     
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\jan_ago.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+
+	DIRECTORY;
+LOAD @1  AS LOJA, 
+     @2  AS DATA,
+     @3  AS HISTORICO,
+     @4  AS Débito,
+     @5  AS Crédito,
+     @6  AS Valor,
+     @7  AS Responsável,
+     @8  AS NO_LOJA,
+     @9  AS MES,
+     @10 AS TRIMESTRE,
+     @11 AS ANO, 
+     @12 AS CONTA,
+     @13 AS Valor_calc,
+     @14 AS Valor_calc_CR_Hist
+     
+   
+FROM
+[\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\bancoset.txt]
+(txt, codepage is 1252, no labels, delimiter is '\t', msq);
+
+
+for each file in FileList('\\192.168.0.14\Contabilidade\0 - BI Financeiro\Base\Bi-83 Balancete\Lanc_*.txt')
+	Directory;
+	LOAD
+	@1  AS LOJA, 
+     @2  AS DATA,
+     @3  AS HISTORICO,
+     @4  AS Débito,
+     @5  AS Crédito,
+     @6  AS Valor,
+     @7  AS Responsável,
+     @8  AS NO_LOJA,
+     @9  AS MES,
+     @10 AS TRIMESTRE,
+     @11 AS ANO, 
+     @12 AS CONTA,
+     @13 AS Valor_calc,
+     @14 AS Valor_calc_CR_Hist
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+next file;
+
+
+DIRECTORY;
+
+FOR i = 1 to 2
+LOAD  Loja ,
+      Data_Lançto  AS DATA,
+      Historico AS Descrição_hist,
+      Débito,
+      Crédito,
+      Valor, 
+      Responsável,
+      NO_LOJA,
+      Hist AS HISTORICO,
+      MES,
+      TRIM,
+      ANO,
+      Conta AS CONTA,
+      Valor_calc
+
+            
+   
+FROM
+[\\192.168.0.14\Contabilidade\6 - Fechamento Contabilidade BI\Lanc_*.xlsx]
+	(ooxml, embedded labels,Table is  Lanc$(i));
+
+NEXT

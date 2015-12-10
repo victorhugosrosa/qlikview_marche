@@ -1,0 +1,14 @@
+Sub PartialReload
+	ActiveDocument.PartialReload
+	'ActiveDocument.Save
+End Sub
+
+Sub Reload
+	ActiveDocument.Reload
+	'ActiveDocument.Save
+End Sub
+
+Sub setHoje
+	set a= ActiveDocument.Variables("myDate")
+	a.SetContent "19/03/2012",true
+End Sub

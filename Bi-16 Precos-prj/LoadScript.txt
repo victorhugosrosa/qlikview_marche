@@ -1,0 +1,134 @@
+///$tab Main
+Let myNow = Now();
+Let myDate = Today();
+Let myDateSQL = Date(Today(),'YYYYMMDD');
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+Let myNow = Now();
+Let myDate = Today();
+Let myDateSQL = Date(Today(),'YYYYMMDD');
+Let myDateSQLM1 = Date(Today()-1,'YYYYMMDD');
+Let myDateSQLM2 = Date(Today()-2,'YYYYMMDD');
+Let myDateM1 = AddMonths(Today(),-12);
+Let diretorio =  'Cargas\' ;
+
+
+Directory;
+LOAD COD_LOJA, 
+     ANO, 
+     NR_SEMANA, 
+     NT_GERAL, 
+     NT_VENDA, 
+     NT_RECEBIMENTO, 
+     NT_DEPOSITO, 
+     NT_REPOSICAO, 
+     NT_NP, 
+     NT_ACOUGUE, 
+     NT_FLV, 
+     NT_FRIOS, 
+     NT_PADARIA
+FROM
+[Cargas\dados Bi-16\01-GCAT.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+
+
+
+
+//Tipos de Bases
+LOAD * INLINE [
+    COD_BASE, NO_BASE
+    1, Zanthus
+    2, Altec
+];
+
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,DTA_ABERTURA
+      ,CLUSTER
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where flg_loja = 1;
+
+SELECT CONVERT(CHAR(10),DATA,103) AS [DATA]
+      ,[COD_PRODUTO]
+      ,c.[COD_LOJA]
+      ,[ITEM]
+      ,NOME AS NO_FUNCIONARIO
+      ,[PRODUTO]
+      --,[COD_BARRA]
+      ,[PRECO] AS [PRECO]
+      ,[QTDE] AS [QTDE]
+      ,[TOTAL] AS [TOTAL]
+      ,[LISTA]
+      ,[OFERTA]
+      --,[VENDEDOR]
+      ,[CRACHA]
+      ,[FLAG_PRECO]
+      ,[FLAG_REPOSICAO]
+      ,[Flag_PVPS] as FLAG_VENCER
+      ,LEFT(dbo.ISO_WEEK(DATA),4) as ANO
+	  ,bi.DBO.F_ISO_WEEK_OF_YEAR(DATA) as NR_SEMANA
+  FROM [MarcheCorp].[dbo].[TAB_COLETORES] as c left join
+	   [192.168.0.6].[Intranet].[dbo].[TAB_FUNCIONARIOS] as f
+	   on 1=1
+	   and c.cod_loja = f.cod_loja
+	   and case when isnumeric(right([CRACHA],5))=1 then right([CRACHA],6) else 0 end = f.[Cadastro]
+	   and f.[DTA_DEMISSAO] is null
+  where 1=1
+  --and FLAG_PRECO = 1
+  and convert(date,data) >= convert(date,getdate()-90)
+	--and c.cod_loja in (1,2,3,6,7,9,12,13,17,18,20,22,23,24,25,30,21)
+  ORDER BY 3;
+
+
+
+/*
+Directory;
+LOAD COD_LOJA, 
+     ANO, 
+     NR_SEMANA, 
+     VLR_EXPO, 
+     VLR_PRECO
+FROM
+[Cargas\dados Bi-16\01-GCAT.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+*/
+
+
+
+Directory;
+LOAD ANO, 
+     NR_SEMANA, 
+     COD_LOJA, 
+     COD_TIPO_PREVENCAO, 
+     VLR_PREVENCAO
+FROM
+[Cargas\dados Bi-16\02-PREVENCAO.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+
+
+
+Directory;
+LOAD NO_TIPO_PREVENCAO, 
+     COD_TIPO_PREVENCAO
+FROM
+[Cargas\dados Bi-16\03-TIPOS_PREVENCAO.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+
+
+

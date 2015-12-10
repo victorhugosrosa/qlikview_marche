@@ -1,0 +1,115 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-08\MARKDOWN_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO_454,
+		@3 as MES_454,
+		@4 as SEMANA_454,
+		@5 as DATA,
+		@6 as TIPO_VENDA,
+		@7 as MOTIVO_MKD,
+		@8 as COD_PRODUTO,
+		@9 as PROMO_MKT,
+		@10 as MrkDown
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-08\CMV_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO_454,
+		@3 as MES_454,
+		@4 as SEMANA_454,
+		@5 as DATA,
+		@6 as TIPO_VENDA,
+		@7 as COD_PRODUTO,
+		@8 as MARGEM_REF,
+		@9 as VLR_IMPOSTOS,
+		@10 as CMV,
+		@11 as VLR_VENDA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//--------------------------------------------------------------------
+//Nome dos Meses
+LOAD * INLINE [
+    MES_454, NO_MES_454
+	 1,"Jan 4s"
+	 2,"Fev 5s"
+	 3,"Mar 4s"
+	 4,"Abr 4s"
+	 5,"Mai 5s"
+	 6,"Jun 4s"
+	 7,"Jul 4s"
+	 8,"Ago 5s"
+	 9,"Set 4s"
+	10,"Out 4s"
+	11,"Nov 5s"
+	12,"Dez 4s"
+];
+
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,DTA_ABERTURA
+      ,CLUSTER
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where 1=1
+  and flg_loja = 1 --or cod_loja in (5,26)
+  ;
+
+
+GRUPO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+  WHERE FLG_EXIBE_BI = 1;
+
+DEPARTAMENTOS:
+SELECT
+	P.NO_DEPARTAMENTO
+	,P.COD_DEPARTAMENTO
+	,P.NO_SECAO
+	,P.COD_SECAO
+	,P.NO_GRUPO
+	,P.COD_GRUPO
+	,COD_PRODUTO
+	,P.DESCRICAO AS NO_PRODUTO
+	,P.COD_USUARIO
+	,P.[COD_FORNECEDOR]
+	,F.DESCRICAO AS NO_FORNECEDOR
+	,P.CLASSIF_PRODUTO
+FROM
+	BI.DBO.BI_CAD_PRODUTO AS P LEFT JOIN BI_CAD_FORNECEDOR AS F ON (P.COD_FORNECEDOR = F.COD_FORNECEDOR)
+WHERE 1=1;
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;

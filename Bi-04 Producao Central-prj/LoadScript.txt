@@ -1,0 +1,210 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+//--------------------------------------------------------------------
+
+Let diretorio =  'Cargas\' ;
+Let agora = Now();
+
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\VENDA_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as QTD_VENDA,
+		@6 as VLR_VENDA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\CMV_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as MARGEM_REF,
+		@6 as VLR_IMPOSTOS,
+		@7 as CMV
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\QUEBRA_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as NO_AJUSTE,
+		@6 as QTD_QUEBRA,
+		@7 as VLR_QUEBRA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\TRANSF_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as NO_TRANSF,
+		@6 as QTD_TRANSF,
+		@7 as VLR_TRANSF
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\NF_DEV_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as QTD_DEVOLUCAO
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+for each file in FileList('Cargas\dados Bi-04\NF_ENT_PC_*.txt')
+
+	Directory;
+	LOAD 
+		@1 as COD_LOJA,
+		@2 as ANO,
+		@3 as MES,
+		@4 as COD_PRODUTO,
+		@5 as QTD_ENTRADA, 
+		@6 as VLR_ENTRADA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	//vlr_entrada
+	
+next file;
+
+//--------------------------------------------------------------------
+//Nome dos Meses
+LOAD * INLINE [
+    MES, NO_MES
+	 1,"Jan"
+	 2,"Fev"
+	 3,"Mar"
+	 4,"Abr"
+	 5,"Mai"
+	 6,"Jun"
+	 7,"Jul"
+	 8,"Ago"
+	 9,"Set"
+	10,"Out"
+	11,"Nov"
+	12,"Dez"
+];
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+CAD_LOJA:
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,DTA_ABERTURA
+      ,CLUSTER
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where 1=1
+  and flg_loja = 1 --or cod_loja in (5,26)
+  ;
+
+GRUPO_COMPRADOR:
+SELECT [COD_USUARIO]
+      ,[NO_COMPRADOR]
+  FROM [BI].[dbo].[COMPRAS_CAD_COMPRADOR]
+  WHERE FLG_EXIBE_BI = 1;
+
+DEPARTAMENTOS:
+SELECT
+	P.NO_DEPARTAMENTO
+	,P.COD_DEPARTAMENTO
+	,P.NO_SECAO
+	,P.COD_SECAO
+	,P.NO_GRUPO
+	,P.COD_GRUPO
+	,COD_PRODUTO
+	,P.DESCRICAO AS NO_PRODUTO
+	,P.COD_USUARIO
+	,P.[COD_FORNECEDOR]
+	,F.DES_FANTASIA AS NO_FORNECEDOR
+	,P.CLASSIF_PRODUTO
+FROM
+	BI.DBO.BI_CAD_PRODUTO AS P LEFT JOIN BI_CAD_FORNECEDOR AS F ON (P.COD_FORNECEDOR = F.COD_FORNECEDOR)
+WHERE 1=1
+	AND 
+	(
+	COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 'CENTRAL' AND TPM.COD_METADADO = 2)
+	OR COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO IN ('PC ACOUGUE','PC FLV','PC FOOD OTHER','PC FRIOS E LATICINIOS') AND TPM.COD_METADADO = 19)
+	);
+
+FLG_METADADOS:
+SQL EXEC QW_LISTA_METADADOS;
+
+PRECO_ATUAL:
+SELECT
+	COD_LOJA
+	,COD_PRODUTO
+	,VLR_VENDA AS VLR_VENDA_ATUAL
+	,VLR_OFERTA AS VLR_PROMO_ATUAL
+	,VLR_VCMARCHE AS VOCE_MARCHE_ATUAL
+FROM
+	BI.DBO.BI_LINHA_PRODUTOS
+WHERE 1=1
+	AND COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 'CENTRAL' AND TPM.COD_METADADO = 2)
+;
+
+ESTOQUE_ATUAL:
+SELECT
+	COD_LOJA
+	,COD_PRODUTO
+	,QTD_ESTOQUE
+FROM
+	BI.DBO.VW_ESTOQUE_ATUAL
+WHERE 1=1
+	AND COD_PRODUTO IN (SELECT TPM.COD_PRODUTO FROM CADASTRO_CAD_PRODUTO_METADADOS TPM WHERE TPM.VLR_METADADO = 'CENTRAL' AND TPM.COD_METADADO = 2)
+;

@@ -1,0 +1,9 @@
+Sub FileExport
+	set obj = ActiveDocument.GetSheetObject("CH01")
+	Obj.export "C:\Users\Administrador\Desktop\teste.csv", ","
+end sub
+
+Sub Reload
+	ActiveDocument.Reload
+	'ActiveDocument.Save
+End Sub
