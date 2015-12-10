@@ -1,0 +1,195 @@
+///$tab Main
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$ #.##0,00;-R$ #.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD/MM/YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+
+
+//--------------------------------------------------------------------
+// Setando variáveis
+
+Let diretorio =  'Cargas\' ;
+Let agora = Now();
+
+//------------------------------------------------------------------------
+// VENDA POR GRUPO DE PRODUTO E SEMANA
+for each file in FileList('Cargas\dados Bi-01\01-VENDA_GRUPO_SEM_*.txt')
+
+	Directory;
+	LOAD @1 as COD_LOJA, 
+	     @2 as ANO, 
+	     @3 as NR_SEMANA, 
+	     @4 as COD_SECAO, 
+	     @5 as COD_GRUPO, 
+	     @6 as QTD_PRODUTO, 
+	     @7 as VLR_VENDA,
+	     @8 as TIPO
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+//DADOS DOS CUPONS
+for each file in FileList('Cargas\dados Bi-01\02-CUPONS_*.txt')
+
+	Directory;
+	LOAD @1 as COD_LOJA, 
+	     @2 as NR_SEMANA, 
+	     @3 as ANO, 
+	     @4 as QTD_CUPOM,
+	     @5 as TIPO
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//------------------------------------------------------------------------
+//BASE DE INFORMAÇÃO DO DELIVERY
+for each file in FileList('Cargas\dados Bi-01\03-Base_Delivery_*.txt')
+
+	Directory;
+	LOAD @1 as COD_LOJA, 
+	     @2 as DATA_D, 
+	     @3 as ENTREGAS_D, 
+	     @4 as CUPOM_D, 
+	     @5 as QTDE_PRODUTO_D, 
+	     @6 as VLR_PRODUTO_D, 
+	     @7 as TIPO_DELIVERY, 
+	     @8 as NR_SEMANA
+	FROM
+	[$(file)]
+	(txt, utf8, no labels, delimiter is '\t', msq);
+	
+next file;
+
+//--------------------------------------------------------------------
+//INFORMACAO DE CADASTRO DO GRUPO
+/*
+Directory;
+LOAD COD_DEPARTAMENTO, 
+     COD_SECAO, 
+     COD_GRUPO, 
+     NO_DEPARTAMENTO, 
+     NO_SECAO, 
+     NO_GRUPO, 
+     METAS,
+     PNP,
+     ESTRUTURA_PRODUTOS
+FROM
+[$(diretorio)dados Bi-01\04-CAD_GRUPOS.txt]
+(txt, utf8, embedded labels, delimiter is '\t', msq);
+*/
+//--------------------------------------------------------------------
+//TABELA DE DATAS DAS METAS
+
+for each file in '2014'
+	Directory;
+	LOAD COD_LOJA,
+		 PERIODO_META,
+		 ANO,
+	     NR_SEMANA, 
+	     NR_META
+	FROM
+	[$(diretorio)dados Bi-01\07-meta_semana_$(file).txt]
+	(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+next file
+
+//--------------------------------------------------------------------
+//fracao de mes 454
+
+Directory;
+LOAD NR_SEMANA, 
+     MES454, 
+     MES454_FRAC,
+     ANO,
+     MES454_FRAC_ANO,
+     MES454_FRAC_ANO2
+
+FROM
+[$(diretorio)dados Bi-01\06-MES454.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+
+//--------------------------------------------------------------------
+//Tipos de Bases
+
+LOAD * INLINE [
+    TIPO, NO_TIPO
+    1, Loja
+    2, Rest.
+    3, Rest.
+];
+
+//--------------------------------------------------------------------
+//Nome dos Meses
+LOAD * INLINE [
+    MES454, NO_MES454
+	 1,"Jan 4s"
+	 2,"Fev 5s"
+	 3,"Mar 4s"
+	 4,"Abr 4s"
+	 5,"Mai 5s"
+	 6,"Jun 4s"
+	 7,"Jul 4s"
+	 8,"Ago 5s"
+	 9,"Set 4s"
+	10,"Out 4s"
+	11,"Nov 5s"
+	12,"Dez 4s"
+
+];
+
+//--------------------------------------------------------------------
+
+OLEDB CONNECT TO [Provider=SQLOLEDB.1;Persist Security Info=True;User ID=RODRIGO.MURTA;Initial Catalog=BI;Data Source=192.168.0.13;Use Procedure for Prepare=1;Auto Translate=True;Packet Size=4096;Workstation ID=MCHSRVTS01;Use Encryption for Data=False;Tag with column collation when possible=False] (XPassword is SAQJeZQFRBNCTaEHZA);
+
+SQL
+SELECT 
+	[COD_DEPARTAMENTO]
+	,[NO_DEPARTAMENTO]
+	,[COD_SECAO]
+	,[NO_SECAO]
+	,[COD_GRUPO]
+	,[NO_GRUPO]
+	,[PNP]
+	,1 as METAS
+	,'Marche' as ESTRUTURA_PRODUTOS
+FROM [BI].[dbo].[BI_CAD_HIERARQUIA_PRODUTO];
+
+
+SQL
+SELECT [COD_LOJA]
+      ,[NO_LOJA]
+      ,[NO_REGIONAL]
+      ,[DTA_ABERTURA]
+  FROM [BI].[dbo].[BI_CAD_LOJA2]
+  where cod_loja <> 8
+;
+
+/*
+SECAO_COMPRADOR:
+SELECT  COD_SECAO
+	   ,NO_COMPRADOR
+  FROM COMPRA_SECAO_COMPRADORES
+;
+*/
+//--------------------------------------------------------------------
+//Metas das Lojas
+Directory;
+LOAD COD_LOJA, 
+     ANO, 
+     NR_SEMANA, 
+     TIPO, 
+     VLR_META
+FROM
+[Cargas\dados Bi-01\10-Meta_Venda_Lojas_2014.txt]
+(txt, codepage is 1252, embedded labels, delimiter is '\t', msq);
+

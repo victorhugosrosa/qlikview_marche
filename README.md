@@ -1,1 +1,0 @@
-# qlikview_marche
