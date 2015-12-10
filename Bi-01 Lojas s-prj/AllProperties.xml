@@ -219,6 +219,12 @@
     <VariableProperties>
       <Name>CD2</Name>
     </VariableProperties>
+    <VariableProperties>
+      <Name>VendaQtdP1S</Name>
+    </VariableProperties>
+    <VariableProperties>
+      <Name>VendaQtdP2S</Name>
+    </VariableProperties>
   </VariableProperties>
   <ActiveSheetId>SH06</ActiveSheetId>
   <BuildNumber>8811</BuildNumber>
